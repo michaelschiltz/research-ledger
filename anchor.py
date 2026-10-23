@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import csv
 import datetime as dt
+import fcntl
 import hashlib
 import os
 import shutil
@@ -36,6 +37,7 @@ HERE = Path(__file__).resolve().parent
 ENTRIES = HERE / "entries"
 LEDGER = HERE / "ledger.csv"
 LOG = HERE / "anchor.log"
+LOCK = HERE / ".anchor.lock"
 FIELDS = ["recorded_utc", "repo", "branch", "commit", "entry"]
 
 REPOS = [  # label, path: the defaults for a bare `python3 anchor.py`
@@ -336,15 +338,19 @@ def main() -> int:
             targets = REPOS
         if args.commit and len(targets) != 1:
             ap.error("--commit needs exactly one --repo")
-        for label, path in targets:
-            try:
-                anchor(label, Path(path).expanduser(), args.commit, args.branch)
-            except (FileNotFoundError, LookupError, ValueError) as exc:
-                log(f"skipped {label}: {exc}")
-        if not args.no_stamp:
-            done, failed = stamp_pending()
-            if failed:
-                log(f"{failed} entr{'y' if failed == 1 else 'ies'} still unstamped; they will be stamped on the next run")
+        # One run at a time: two quick pushes start two background runs, and without the lock they read the
+        # same last entry, chain to it twice and race on ledger.csv (seen in testing, 2026-10-23).
+        with LOCK.open("a") as lockfile:
+            fcntl.flock(lockfile, fcntl.LOCK_EX)
+            for label, path in targets:
+                try:
+                    anchor(label, Path(path).expanduser(), args.commit, args.branch)
+                except (FileNotFoundError, LookupError, ValueError) as exc:
+                    log(f"skipped {label}: {exc}")
+            if not args.no_stamp:
+                done, failed = stamp_pending()
+                if failed:
+                    log(f"{failed} entr{'y' if failed == 1 else 'ies'} still unstamped; they will be stamped on the next run")
     except Exception as exc:  # noqa: BLE001
         log(f"error: {exc!r}")
         return 0 if args.hook else 1

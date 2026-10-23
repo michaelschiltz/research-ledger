@@ -36,4 +36,6 @@ Git commit ids are SHA-1. Git has used a collision-detecting SHA-1 since version
 
 ## Mechanics
 
-`anchor.py` uses only the Python standard library (3.9 or later). It reads a repository's `HEAD` and ref from the `.git` directory, never runs git, and never writes to the anchored repositories. A `pre-push` hook in each repository runs it in the background, so a push is never delayed or blocked. An entry written while offline is stamped on the next run.
+`anchor.py` uses only the Python standard library (3.9 or later). It reads a repository's `HEAD` and ref from the `.git` directory, never runs git, and never writes to the anchored repositories. Runs take a lock, so two pushes in quick succession are recorded one after the other. An entry written while offline is stamped on the next run.
+
+A `pre-push` hook in each anchored repository does two things. First, it **refuses a push that would remove commits from the remote history**: a force push, or deleting a remote branch. Second, it runs `anchor.py` in the background for each pushed branch head, so the push is never delayed. The guard can be overridden deliberately, for example to purge a password committed by mistake, with `LEDGER_ALLOW_REWRITE=1 git push …`. Every such override is to be recorded in [`REWRITES.md`](REWRITES.md), so that the gap it leaves in the anchored history is explained rather than discovered. This ledger's own default branch is protected against force pushes on GitHub.

@@ -1,12 +1,37 @@
 #!/bin/sh
-# Anchor each pushed commit in the public research ledger (michaelschiltz/research-ledger).
+# research-ledger pre-push hook (michaelschiltz/research-ledger).
 # Install: cp ~/GitHub/research-ledger/pre-push <repo>/.git/hooks/pre-push && chmod +x <repo>/.git/hooks/pre-push
-# Anchoring happens in the background: it never delays, blocks or fails the push. Problems go to
-# research-ledger/anchor.log. Only branches are anchored; deletions and tags are skipped.
+#
+# 1. Guard: refuses a push that would remove commits from the remote history - a force push, or deleting a
+#    remote branch - because anchored commits must stay in the published history. To override on purpose
+#    (say, a password committed by mistake), push with LEDGER_ALLOW_REWRITE=1 and record why in the
+#    ledger's REWRITES.md. `git push --no-verify` also skips this hook, and skips the anchoring with it.
+# 2. Anchor: records each pushed branch head in the ledger, in the background, so the push is never delayed.
+#    Problems go to research-ledger/anchor.log.
 LEDGER="$HOME/GitHub/research-ledger/anchor.py"
+REFS=$(cat)
+
+if [ "${LEDGER_ALLOW_REWRITE:-0}" != 1 ]; then
+  printf '%s\n' "$REFS" | while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -n "$remote_ref" ] || continue
+    case "$remote_ref" in refs/heads/*) ;; *) continue ;; esac
+    case "$local_sha" in
+      *[!0]*) ;;
+      *) echo "research-ledger: refusing to delete ${remote_ref#refs/heads/} on the remote: its commits are anchored." >&2
+         echo "  To do it anyway: LEDGER_ALLOW_REWRITE=1 git push ..., and record why in research-ledger/REWRITES.md." >&2
+         exit 1 ;;
+    esac
+    case "$remote_sha" in *[!0]*) ;; *) continue ;; esac   # a new branch on the remote: nothing to rewrite
+    if ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+      echo "research-ledger: refusing this push to ${remote_ref#refs/heads/}: it would drop commits already on the remote (a force push)." >&2
+      echo "  If the remote simply has commits you lack, pull first. To rewrite on purpose: LEDGER_ALLOW_REWRITE=1 git push ..., and record why in research-ledger/REWRITES.md." >&2
+      exit 1
+    fi
+  done || exit 1
+fi
+
 [ -f "$LEDGER" ] || exit 0
 LABEL=$(basename "$PWD" | tr '[:upper:]' '[:lower:]')
-REFS=$(cat)
 (
   printf '%s\n' "$REFS" | while read -r local_ref local_sha remote_ref remote_sha; do
     case "$local_ref" in refs/heads/*) ;; *) continue ;; esac
