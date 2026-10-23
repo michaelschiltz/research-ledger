@@ -1,3 +1,4 @@
 anchor.log
 .anchor.lock
 __pycache__/
+*.ots.bak

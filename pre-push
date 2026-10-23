@@ -1,6 +1,8 @@
 #!/bin/sh
 # research-ledger pre-push hook (michaelschiltz/research-ledger).
 # Install: cp ~/GitHub/research-ledger/pre-push <repo>/.git/hooks/pre-push && chmod +x <repo>/.git/hooks/pre-push
+#   If the repo sets core.hooksPath (git config core.hooksPath), copy it into that folder instead:
+#   .git/hooks is then ignored. myfoamrepo does this and tracks the hook in .githooks/.
 #
 # 1. Guard: refuses a push that would remove commits from the remote history - a force push, or deleting a
 #    remote branch - because anchored commits must stay in the published history. To override on purpose
