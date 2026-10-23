@@ -1,6 +1,6 @@
 # research-ledger
 
-A public, timestamped record of the commit history of two private research repositories: the coding datasets of the HistorEE project (`historee_codebooks`) and the author's working notes (`myfoamrepo`). The repositories are private while the work is in progress. This ledger lets anyone check, once they are opened, that their history was not rewritten, and that a file in them existed by a given date.
+A public, timestamped record of the commit history of two public research repositories at github.com/michaelschiltz: the coding datasets of the HistorEE project (`historee_codebooks`) and the author's working notes (`myfoamrepo`). GitHub shows their history, but a commit's date is set by the author's own machine, and pushed history can be rewritten. This ledger fixes each pushed commit to a Bitcoin-attested time, independently of GitHub and of the author. Anyone can therefore check the order of the work, for instance that expectations were committed before the coding that tests them, and that the history has not been rewritten since.
 
 Maintainer: Michael Schiltz (Hokkaido University).
 
@@ -25,8 +25,8 @@ Entries form a hash chain through `previous`. Removing an entry breaks the chain
 
 1. **Each proof.** Use the OpenTimestamps client: `ots verify entries/<year>/<entry>.txt.ots`. Or drop the `.txt` and its `.ots` onto the verifier at opentimestamps.org. A proof that is still *pending* has not yet reached a block; `python3 anchor.py --upgrade` completes it.
 2. **The ledger's own consistency.** `python3 anchor.py --check` confirms that every row has its entry, every entry agrees with its row, every proof commits to its entry, and the chain is unbroken.
-3. **A repository, once published.** Every commit anchored here for a branch must be an ancestor of that branch's published history: `git merge-base --is-ancestor <commit> <branch>`. Anchoring happens at push, so commits amended or rebased before they were pushed were never anchored and leave no gap. An anchored commit missing from the published history means the history was rewritten after the push.
-4. **A single file, before publication.** The author can prove that one file existed at an anchored commit by disclosing the commit object, the tree objects on the file's path and the file itself, all of which hash up to the anchored id. Note that a tree object lists every name in its directory.
+3. **The repositories.** Every commit anchored here for a branch must be an ancestor of that branch's current history on GitHub: `git merge-base --is-ancestor <commit> <branch>`. Anchoring happens at push, so commits amended or rebased before they were pushed were never anchored and leave no gap. An anchored commit missing from the history means the history was rewritten after the push. Deliberate rewrites are listed in [`REWRITES.md`](REWRITES.md).
+4. **A date for a file.** `git log --diff-filter=A -- <file>` names the commit that added the file. The earliest anchored commit descended from it (test descent with `git merge-base --is-ancestor`) dates the file: that entry's proof bounds when the file existed.
 
 ## Limits
 
