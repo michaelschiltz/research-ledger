@@ -1,0 +1,17 @@
+#!/bin/sh
+# Anchor each pushed commit in the public research ledger (michaelschiltz/research-ledger).
+# Install: cp ~/GitHub/research-ledger/pre-push <repo>/.git/hooks/pre-push && chmod +x <repo>/.git/hooks/pre-push
+# Anchoring happens in the background: it never delays, blocks or fails the push. Problems go to
+# research-ledger/anchor.log. Only branches are anchored; deletions and tags are skipped.
+LEDGER="$HOME/GitHub/research-ledger/anchor.py"
+[ -f "$LEDGER" ] || exit 0
+LABEL=$(basename "$PWD" | tr '[:upper:]' '[:lower:]')
+REFS=$(cat)
+(
+  printf '%s\n' "$REFS" | while read -r local_ref local_sha remote_ref remote_sha; do
+    case "$local_ref" in refs/heads/*) ;; *) continue ;; esac
+    case "$local_sha" in *[!0]*) ;; *) continue ;; esac
+    /usr/bin/env python3 "$LEDGER" --hook --repo "$PWD" --label "$LABEL" --commit "$local_sha" --branch "${local_ref#refs/heads/}"
+  done
+) >/dev/null 2>&1 &
+exit 0
