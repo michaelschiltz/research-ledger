@@ -1,0 +1,33 @@
+{
+  "title": "research-ledger — timestamped record of the commit history of HistorEE_codebooks and myfoamrepo",
+  "upload_type": "dataset",
+  "description": "<p>One hash-chained entry for every pushed branch head of two public research repositories, <code>HistorEE_codebooks</code> and <code>myfoamrepo</code>, each with an OpenTimestamps proof tying it to a Bitcoin block. The ledger dates the pushed history of both repositories independently of GitHub and of the author.</p><p>A deposit is a snapshot of the ledger at the release. The live ledger is the GitHub repository.</p>",
+  "creators": [
+    {
+      "name": "Schiltz, Michael",
+      "affiliation": "Hokkaido University",
+      "orcid": "0000-0001-9776-7918"
+    }
+  ],
+  "keywords": [
+    "provenance",
+    "trusted timestamping",
+    "OpenTimestamps",
+    "research integrity",
+    "economic history"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "10.5281/zenodo.21341360",
+      "relation": "isSupplementTo",
+      "resource_type": "dataset",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.5281/zenodo.21615890",
+      "relation": "isSupplementTo",
+      "resource_type": "other",
+      "scheme": "doi"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+title: "research-ledger — timestamped record of the commit history of HistorEE_codebooks and myfoamrepo"
+message: "If you rely on this ledger, please cite it using these metadata."
+type: dataset
+authors:
+  - family-names: Schiltz
+    given-names: Michael
+    affiliation: Hokkaido University
+    orcid: "https://orcid.org/0000-0001-9776-7918"
+abstract: "One hash-chained entry for every pushed branch head of two public research repositories, each with an OpenTimestamps proof tying it to a Bitcoin block. The ledger dates the pushed history of both repositories independently of GitHub and of the author."
+repository-code: "https://github.com/michaelschiltz/research-ledger"
+version: 2026.11.16
+date-released: 2026-11-16
+keywords:
+  - provenance
+  - trusted timestamping
+  - OpenTimestamps
+  - research integrity
+  - economic history

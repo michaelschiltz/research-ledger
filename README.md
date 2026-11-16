@@ -34,6 +34,10 @@ The ledger proves existence by a date and the integrity of anchored history. It 
 
 Git commit ids are SHA-1. Git has used a collision-detecting SHA-1 since version 2.13, which rejects objects built with the known collision attacks. Forging a different history to fit an id that is already anchored would need a second preimage, which is not feasible for SHA-1.
 
+## Archived snapshots
+
+Releases of this repository are deposited at Zenodo. A deposit is a snapshot: it holds the ledger as it stood at the release, and every proof that had reached a Bitcoin block by then is stored in its completed form, so that it verifies against the block headers without the calendar servers. Entries from the last hours before a release may still be pending in that deposit and are completed in the next. The live ledger is this repository: the DOI resolves to the latest release, not to the latest entry.
+
 ## Mechanics
 
 `anchor.py` uses only the Python standard library (3.9 or later). It reads a repository's `HEAD` and ref from the `.git` directory, never runs git, and never writes to the anchored repositories. Runs take a lock, so two pushes in quick succession are recorded one after the other. An entry written while offline is stamped on the next run.
