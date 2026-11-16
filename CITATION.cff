@@ -9,6 +9,7 @@ authors:
     orcid: "https://orcid.org/0000-0001-9776-7918"
 abstract: "One hash-chained entry for every pushed branch head of two public research repositories, each with an OpenTimestamps proof tying it to a Bitcoin block. The ledger dates the pushed history of both repositories independently of GitHub and of the author."
 repository-code: "https://github.com/michaelschiltz/research-ledger"
+license: CC0-1.0            # the ledger data; code is under LICENSE (MIT)
 version: 2026.11.16
 date-released: 2026-11-16
 keywords:

@@ -43,3 +43,7 @@ Releases of this repository are deposited at Zenodo. A deposit is a snapshot: it
 `anchor.py` uses only the Python standard library (3.9 or later). It reads a repository's `HEAD` and ref from the `.git` directory, never runs git, and never writes to the anchored repositories. Runs take a lock, so two pushes in quick succession are recorded one after the other. An entry written while offline is stamped on the next run.
 
 A `pre-push` hook in each anchored repository does two things. First, it **refuses a push that would remove commits from the remote history**: a force push, or deleting a remote branch. Second, it runs `anchor.py` in the background for each pushed branch head, so the push is never delayed. The guard can be overridden deliberately, for example to purge a password committed by mistake, with `LEDGER_ALLOW_REWRITE=1 git push …`. Every such override is to be recorded in [`REWRITES.md`](REWRITES.md), so that the gap it leaves in the anchored history is explained rather than discovered. This ledger's own default branch is protected against force pushes on GitHub.
+
+## Licence
+
+The ledger data (`ledger.csv`, `entries/`, `REWRITES.md`) is in the public domain under CC0 1.0 ([`LICENSE-DATA.md`](LICENSE-DATA.md)). The code (`anchor.py`, `pre-push`) is under the MIT licence ([`LICENSE`](LICENSE)).

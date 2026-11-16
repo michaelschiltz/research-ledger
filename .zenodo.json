@@ -29,5 +29,6 @@
       "resource_type": "other",
       "scheme": "doi"
     }
-  ]
+  ],
+  "license": "cc0-1.0"
 }
