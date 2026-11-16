@@ -1,5 +1,7 @@
 # research-ledger
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24275780.svg)](https://doi.org/10.5281/zenodo.24275780)
+
 A public, timestamped record of the commit history of two public research repositories at github.com/michaelschiltz: the coding datasets of the HistorEE project (`historee_codebooks`) and the author's working notes (`myfoamrepo`). GitHub shows their history, but a commit's date is set by the author's own machine, and pushed history can be rewritten. This ledger fixes each pushed commit to a Bitcoin-attested time, independently of GitHub and of the author. Anyone can therefore check the order of the work, for instance that expectations were committed before the coding that tests them, and that the history has not been rewritten since.
 
 Maintainer: Michael Schiltz (Hokkaido University).
@@ -36,7 +38,7 @@ Git commit ids are SHA-1. Git has used a collision-detecting SHA-1 since version
 
 ## Archived snapshots
 
-Releases of this repository are deposited at Zenodo. A deposit is a snapshot: it holds the ledger as it stood at the release, and every proof that had reached a Bitcoin block by then is stored in its completed form, so that it verifies against the block headers without the calendar servers. Entries from the last hours before a release may still be pending in that deposit and are completed in the next. The live ledger is this repository: the DOI resolves to the latest release, not to the latest entry.
+Releases of this repository are deposited at Zenodo under the version-independent DOI [10.5281/zenodo.24275780](https://doi.org/10.5281/zenodo.24275780); each release also has a DOI of its own there. A deposit is a snapshot: it holds the ledger as it stood at the release, and every proof that had reached a Bitcoin block by then is stored in its completed form, so that it verifies against the block headers without the calendar servers. Entries from the last hours before a release may still be pending in that deposit and are completed in the next. The live ledger is this repository: the DOI resolves to the latest release, not to the latest entry.
 
 ## Mechanics
 
