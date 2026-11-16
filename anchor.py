@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""Anchor the current commit of private repositories in this public ledger, with OpenTimestamps proofs.
+"""Anchor the current commit of public research repositories in this public ledger, with OpenTimestamps proofs.
 
 Each run takes a commit of each repository (the one being pushed, when run from the pre-push hook; else
 HEAD, read from the .git files without running git), writes one entry file per new commit under entries/, appends a row to ledger.csv, and submits each unstamped entry's
 SHA-256 to public OpenTimestamps calendars, writing a standard .ots proof beside it. The proof starts as
-"pending" and becomes a Bitcoin attestation within hours; `--upgrade` completes it with the official
-client (`ots upgrade`) when that is installed. Nothing in the anchored repositories is read beyond HEAD
+"pending" and becomes a Bitcoin attestation within hours; the official client (`ots upgrade`), when that
+is installed, completes it. Every anchoring run does so for proofs older than UPGRADE_AFTER_HOURS, and
+`--upgrade` for all of them. Nothing in the anchored repositories is read beyond HEAD
 and its ref, and nothing in them is written.
 
     python3 anchor.py                      # anchor the default repositories (see REPOS)
     python3 anchor.py --repo ~/x --label x # anchor one repository's HEAD
     python3 anchor.py --repo ~/x --label x --commit SHA --branch main   # what the pre-push hook runs
     python3 anchor.py --check              # check every entry, row and proof is internally consistent
-    python3 anchor.py --upgrade            # complete pending proofs (needs the `ots` client)
+    python3 anchor.py --upgrade            # complete every pending proof (needs the `ots` client)
+
+Committing and pushing the ledger is not done here: publish.py does that, and release.py cuts a release.
 
 Standard library only. A failed network call never loses an entry: the entry is written first and an
 unstamped entry is stamped on the next run. Exit status is 0 in --hook mode whatever happens, so a push is
@@ -58,6 +61,11 @@ OTS_VERSION = b"\x01"
 OP_SHA256 = b"\x08"
 OP_APPEND = b"\xf0"
 FORK = b"\xff"
+# Tag of a Bitcoin block header attestation (opentimestamps.core.notary.BitcoinBlockHeaderAttestation.TAG).
+# A proof that contains it has reached a block; one that does not is still pending.
+BTC_TAG = bytes.fromhex("0588960d73d71901")
+
+UPGRADE_AFTER_HOURS = 6  # an anchoring run tries to complete pending proofs older than this
 
 
 def log(msg: str) -> None:
@@ -255,6 +263,70 @@ def find_ots() -> str | None:
     return None
 
 
+def is_complete(ots: Path) -> bool:
+    """True when the proof carries a Bitcoin block attestation."""
+    return BTC_TAG in ots.read_bytes()
+
+
+def entry_time(ots: Path) -> dt.datetime | None:
+    """When the entry was recorded, from its file name (20261023T072148Z-...)."""
+    try:
+        return dt.datetime.strptime(ots.name.split("-", 1)[0], "%Y%m%dT%H%M%SZ").replace(tzinfo=dt.timezone.utc)
+    except ValueError:
+        return None
+
+
+def pending_proofs(min_age_hours: float = 0.0) -> list[Path]:
+    """Proofs without a Bitcoin attestation whose entry is at least `min_age_hours` old."""
+    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=min_age_hours)
+    out = []
+    for ots in sorted(ENTRIES.rglob("*.txt.ots")):
+        if is_complete(ots):
+            continue
+        t = entry_time(ots)
+        if t is None or t <= cutoff:
+            out.append(ots)
+    return out
+
+
+def commits_to_entry(ots: Path) -> bool:
+    entry = ots.with_name(ots.name[: -len(".ots")])
+    head = OTS_MAGIC + OTS_VERSION + OP_SHA256
+    b = ots.read_bytes()
+    return entry.is_file() and b.startswith(head) and b[len(head):len(head) + 32] == hashlib.sha256(entry.read_bytes()).digest()
+
+
+def upgrade(min_age_hours: float = 0.0, quiet: bool = False, timeout: float = 60.0) -> tuple[int, int]:
+    """Complete pending proofs with the official client. Returns (completed now, still pending).
+
+    One proof per call of the client: it stops at the first file it cannot back up, and one slow calendar
+    should not hold up the rest. The client keeps the proof it replaces beside it as .ots.bak (ignored by git).
+    """
+    todo = pending_proofs(min_age_hours)
+    if not todo:
+        return 0, 0
+    ots_bin = find_ots()
+    if not ots_bin:
+        if not quiet:
+            print("the OpenTimestamps client is not installed: pipx install opentimestamps-client")
+        return 0, len(todo)
+    sink = subprocess.DEVNULL if quiet else None
+    completed = 0
+    for ots in todo:
+        try:
+            subprocess.call([ots_bin, "upgrade", str(ots)], stdout=sink, stderr=sink, timeout=timeout)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            log(f"upgrade of {ots.name} failed: {exc}")
+            continue
+        if not ots.is_file() or not commits_to_entry(ots):
+            log(f"{ots.name}: after the upgrade the proof is missing or no longer commits to its entry; restore it from {ots.name}.bak")
+        elif is_complete(ots):
+            completed += 1
+    if completed:
+        log(f"completed {completed} proof(s); {len(todo) - completed} of those tried still pending")
+    return completed, len(todo) - completed
+
+
 # --------------------------------------------------------------------------- checks
 
 
@@ -299,6 +371,9 @@ def check() -> int:
         if p.resolve() not in seen:
             print(f"entry file with no ledger row: {p.relative_to(HERE)}")
             problems += 1
+    proofs = sorted(ENTRIES.rglob("*.txt.ots"))
+    complete = sum(1 for o in proofs if is_complete(o))
+    print(f"{len(proofs)} proofs: {complete} with a Bitcoin attestation, {len(proofs) - complete} pending")
     print(f"{len(rows)} rows; {problems} problem(s)")
     return 1 if problems else 0
 
@@ -314,19 +389,21 @@ def main() -> int:
     ap.add_argument("--branch", help="branch name recorded with --commit")
     ap.add_argument("--hook", action="store_true", help="never fail: for use from the pre-push hook")
     ap.add_argument("--check", action="store_true", help="check entries, rows and proofs; anchor nothing")
-    ap.add_argument("--upgrade", action="store_true", help="complete pending proofs with the `ots` client")
+    ap.add_argument("--upgrade", action="store_true", help="complete every pending proof with the `ots` client")
     ap.add_argument("--no-stamp", action="store_true", help="write entries only (testing)")
     args = ap.parse_args()
 
     if args.check:
         return check()
     if args.upgrade:
-        ots = find_ots()
-        if not ots:
+        if pending_proofs() and not find_ots():
             print("the OpenTimestamps client is not installed: pipx install opentimestamps-client")
             return 1
-        proofs = [str(p) for p in sorted(ENTRIES.rglob("*.ots"))]
-        return subprocess.call([ots, "upgrade", *proofs]) if proofs else 0
+        with LOCK.open("a") as lockfile:
+            fcntl.flock(lockfile, fcntl.LOCK_EX)
+            completed, pending = upgrade()
+        print(f"{completed} proof(s) completed; {pending} still pending")
+        return 0
 
     try:
         if args.repo:
@@ -351,6 +428,8 @@ def main() -> int:
                 done, failed = stamp_pending()
                 if failed:
                     log(f"{failed} entr{'y' if failed == 1 else 'ies'} still unstamped; they will be stamped on the next run")
+                if find_ots():
+                    upgrade(UPGRADE_AFTER_HOURS, quiet=True)
     except Exception as exc:  # noqa: BLE001
         log(f"error: {exc!r}")
         return 0 if args.hook else 1

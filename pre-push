@@ -10,7 +10,10 @@
 #    ledger's REWRITES.md. `git push --no-verify` also skips this hook, and skips the anchoring with it.
 # 2. Anchor: records each pushed branch head in the ledger, in the background, so the push is never delayed.
 #    Problems go to research-ledger/anchor.log.
+# 3. Publish: once the heads are anchored, commits the ledger's new entries and completed proofs and pushes
+#    the ledger (publish.py), in the same background run.
 LEDGER="$HOME/GitHub/research-ledger/anchor.py"
+PUBLISH="$HOME/GitHub/research-ledger/publish.py"
 REFS=$(cat)
 
 if [ "${LEDGER_ALLOW_REWRITE:-0}" != 1 ]; then
@@ -40,5 +43,6 @@ LABEL=$(basename "$PWD" | tr '[:upper:]' '[:lower:]')
     case "$local_sha" in *[!0]*) ;; *) continue ;; esac
     /usr/bin/env python3 "$LEDGER" --hook --repo "$PWD" --label "$LABEL" --commit "$local_sha" --branch "${local_ref#refs/heads/}"
   done
+  [ -f "$PUBLISH" ] && /usr/bin/env python3 "$PUBLISH" --hook
 ) >/dev/null 2>&1 &
 exit 0

@@ -23,7 +23,7 @@ Entries form a hash chain through `previous`. Removing an entry breaks the chain
 
 ## Checking it
 
-1. **Each proof.** Use the OpenTimestamps client: `ots verify entries/<year>/<entry>.txt.ots`. Or drop the `.txt` and its `.ots` onto the verifier at opentimestamps.org. A proof that is still *pending* has not yet reached a block; `python3 anchor.py --upgrade` completes it.
+1. **Each proof.** Use the OpenTimestamps client: `ots verify entries/<year>/<entry>.txt.ots`. Or drop the `.txt` and its `.ots` onto the verifier at opentimestamps.org. A proof that is still *pending* has not yet reached a block; `python3 anchor.py --upgrade` completes it, and `--check` reports how many are pending.
 2. **The ledger's own consistency.** `python3 anchor.py --check` confirms that every row has its entry, every entry agrees with its row, every proof commits to its entry, and the chain is unbroken.
 3. **The repositories.** Every commit anchored here for a branch must be an ancestor of that branch's current history on GitHub: `git merge-base --is-ancestor <commit> <branch>`. Anchoring happens at push, so commits amended or rebased before they were pushed were never anchored and leave no gap. An anchored commit missing from the history means the history was rewritten after the push. Deliberate rewrites are listed in [`REWRITES.md`](REWRITES.md).
 4. **A date for a file.** `git log --diff-filter=A -- <file>` names the commit that added the file. The earliest anchored commit descended from it (test descent with `git merge-base --is-ancestor`) dates the file: that entry's proof bounds when the file existed.
@@ -43,6 +43,8 @@ Releases of this repository are deposited at Zenodo. A deposit is a snapshot: it
 `anchor.py` uses only the Python standard library (3.9 or later). It reads a repository's `HEAD` and ref from the `.git` directory, never runs git, and never writes to the anchored repositories. Runs take a lock, so two pushes in quick succession are recorded one after the other. An entry written while offline is stamped on the next run.
 
 A `pre-push` hook in each anchored repository does two things. First, it **refuses a push that would remove commits from the remote history**: a force push, or deleting a remote branch. Second, it runs `anchor.py` in the background for each pushed branch head, so the push is never delayed. The guard can be overridden deliberately, for example to purge a password committed by mistake, with `LEDGER_ALLOW_REWRITE=1 git push …`. Every such override is to be recorded in [`REWRITES.md`](REWRITES.md), so that the gap it leaves in the anchored history is explained rather than discovered. This ledger's own default branch is protected against force pushes on GitHub.
+
+The same background run keeps the ledger current without a step by hand. After anchoring, `anchor.py` asks the OpenTimestamps client, where it is installed, to complete pending proofs older than six hours. `publish.py` then commits the new entries and completed proofs, and nothing else, and pushes the ledger; a push that fails is tried again on the next run. `release.py` cuts a release: it completes every proof it can, runs the check, refuses if a proof older than a day is still pending, sets the version in `CITATION.cff`, tags with the date and publishes. On GitHub, a workflow runs `anchor.py --check` on every push and writes nothing.
 
 ## Licence
 

@@ -1,0 +1,23 @@
+name: check
+
+# Every push re-runs the ledger's own consistency check: every row has its
+# entry, every entry agrees with its row, every proof commits to its entry,
+# and the hash chain is unbroken. Read-only: nothing here writes to the ledger.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check the ledger
+        run: python3 anchor.py --check
