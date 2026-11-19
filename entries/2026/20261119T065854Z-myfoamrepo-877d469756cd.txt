@@ -1,0 +1,6 @@
+research-ledger anchor
+repo: myfoamrepo
+branch: master
+commit: 877d469756cdd792e3aca36561d898550004c1ca
+recorded_utc: 2026-11-19T06:58:54Z
+previous: 18efbb120252db1eefb01450efc4e0bbeb16730212de18999296081eaf25bd6f
