@@ -1,0 +1,6 @@
+research-ledger anchor
+repo: historee_codebooks
+branch: main
+commit: 21b13fdab79f45e3e0b68a26d53be22baedf9dd7
+recorded_utc: 2026-11-19T07:10:04Z
+previous: 92f816cb3548cb63b0779c4d1c43210d70d056a27cb75708d37b3e967de9de6f
